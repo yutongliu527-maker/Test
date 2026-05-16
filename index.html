@@ -31,8 +31,8 @@
 
     .wheel-wrapper {
       position: relative;
-      width: 520px;
-      height: 520px;
+      width: min(520px, calc(100vw - 40px));
+      height: min(520px, calc(100vw - 40px));
       display: flex;
       align-items: center;
       justify-content: center;
@@ -140,6 +140,15 @@
       border-color: #FECA57;
     }
 
+    @media (max-width: 540px) {
+      body       { padding: 28px 20px 44px; }
+      h1         { font-size: 2.2rem; margin-bottom: 28px; letter-spacing: 2px; }
+      #spinBtn   { margin-top: 28px; padding: 14px 48px; font-size: 1.4rem; letter-spacing: 3px; }
+      .modal     { padding: 32px 28px; }
+      .modal-img { width: 120px; height: 120px; }
+      .modal p   { font-size: 1.7rem; margin-bottom: 20px; }
+    }
+
     @keyframes fadeIn {
       from { opacity: 0; }
       to   { opacity: 1; }
@@ -156,7 +165,7 @@
   <h1>今晚吃什么？</h1>
 
   <div class="wheel-wrapper">
-    <canvas id="wheel" width="500" height="500"></canvas>
+    <canvas id="wheel"></canvas>
   </div>
 
   <button id="spinBtn">转！</button>
@@ -208,21 +217,29 @@
     const resultImg  = document.getElementById('resultImg');
     const closeBtn   = document.getElementById('closeBtn');
 
-    const cx = canvas.width  / 2;   // 250
-    const cy = canvas.height / 2;   // 250
-    const outerRadius = cx - 6;     // 244
+    let cx, cy, outerRadius;
     const N = options.length;
-    const segAngle = (2 * Math.PI) / N;   // 24°
+    const segAngle = (2 * Math.PI) / N;
+
+    function resizeCanvas() {
+      const size = canvas.parentElement.offsetWidth;
+      canvas.width  = size;
+      canvas.height = size;
+      cx = size / 2;
+      cy = size / 2;
+      outerRadius = cx - 6;
+    }
 
     let currentAngle = 0;
     let spinning = false;
 
     function drawWheel(angle) {
+      const scale = canvas.width / 500;
+
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       ctx.save();
       ctx.translate(cx, cy);
-      // offset so segment 0 is centered at top (12 o'clock) when angle = 0
       ctx.rotate(angle - Math.PI / 2 - segAngle / 2);
 
       for (let i = 0; i < N; i++) {
@@ -238,7 +255,7 @@
         ctx.fillStyle = colors[i];
         ctx.fill();
         ctx.strokeStyle = 'rgba(255,255,255,0.2)';
-        ctx.lineWidth = 2;
+        ctx.lineWidth = Math.max(1, 2 * scale);
         ctx.stroke();
 
         // Label
@@ -248,11 +265,11 @@
         ctx.textBaseline = 'middle';
         ctx.fillStyle    = '#fff';
         ctx.shadowColor  = 'rgba(0,0,0,0.65)';
-        ctx.shadowBlur   = 4;
+        ctx.shadowBlur   = Math.round(4 * scale);
         const text = options[i];
-        const fs = text.length > 5 ? 11 : text.length > 3 ? 13 : 15;
+        const fs = Math.round((text.length > 5 ? 11 : text.length > 3 ? 13 : 15) * scale);
         ctx.font = `bold ${fs}px 'Noto Sans SC', 'PingFang SC', sans-serif`;
-        ctx.fillText(text, outerRadius - 14, 0);
+        ctx.fillText(text, outerRadius - Math.round(14 * scale), 0);
         ctx.restore();
       }
 
@@ -264,40 +281,43 @@
       ctx.beginPath();
       ctx.arc(0, 0, outerRadius, 0, 2 * Math.PI);
       ctx.strokeStyle = 'rgba(255,255,255,0.12)';
-      ctx.lineWidth = 3;
+      ctx.lineWidth = Math.max(1, 3 * scale);
       ctx.stroke();
       ctx.restore();
 
       // Center hub
+      const hubR = Math.round(22 * scale);
       ctx.save();
       ctx.translate(cx, cy);
       ctx.beginPath();
-      ctx.arc(0, 0, 22, 0, 2 * Math.PI);
-      const hubGrad = ctx.createRadialGradient(-5, -5, 0, 0, 0, 22);
+      ctx.arc(0, 0, hubR, 0, 2 * Math.PI);
+      const hubGrad = ctx.createRadialGradient(-5 * scale, -5 * scale, 0, 0, 0, hubR);
       hubGrad.addColorStop(0, '#fff9c4');
       hubGrad.addColorStop(1, '#FF9F43');
       ctx.fillStyle = hubGrad;
       ctx.fill();
       ctx.strokeStyle = 'rgba(255,255,255,0.8)';
-      ctx.lineWidth = 3;
+      ctx.lineWidth = Math.max(1, 3 * scale);
       ctx.stroke();
       ctx.restore();
 
       // Pointer arrow (fixed at top, not rotating)
       const px = cx;
       const py = 0;
+      const pw = Math.round(14 * scale);
+      const ph = Math.round(34 * scale);
       ctx.save();
       ctx.beginPath();
-      ctx.moveTo(px - 14, py);
-      ctx.lineTo(px + 14, py);
-      ctx.lineTo(px, py + 34);
+      ctx.moveTo(px - pw, py);
+      ctx.lineTo(px + pw, py);
+      ctx.lineTo(px, py + ph);
       ctx.closePath();
       ctx.fillStyle = '#FECA57';
       ctx.shadowColor = 'rgba(254, 202, 87, 0.9)';
-      ctx.shadowBlur = 14;
+      ctx.shadowBlur = Math.round(14 * scale);
       ctx.fill();
       ctx.strokeStyle = '#fff';
-      ctx.lineWidth = 1.5;
+      ctx.lineWidth = Math.max(1, 1.5 * scale);
       ctx.shadowBlur = 0;
       ctx.stroke();
       ctx.restore();
@@ -359,9 +379,15 @@
     closeBtn.addEventListener('click', closeModal);
     overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
 
-    // Initial draw; redraw after fonts load for correct Chinese rendering
+    resizeCanvas();
     drawWheel(currentAngle);
     document.fonts.ready.then(() => drawWheel(currentAngle));
+
+    let _resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(_resizeTimer);
+      _resizeTimer = setTimeout(() => { resizeCanvas(); drawWheel(currentAngle); }, 100);
+    });
   </script>
 </body>
 </html>
