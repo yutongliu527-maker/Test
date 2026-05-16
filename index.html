@@ -1,1 +1,367 @@
-<html><body><h1>你懂冰寒龙王的含金量吗？？？</h1></body></html>
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>今晚吃什么？</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;700;900&display=swap" rel="stylesheet">
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      min-height: 100vh;
+      background: radial-gradient(ellipse at top, #2d1b69 0%, #1a0a2e 60%);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 50px 20px 70px;
+      font-family: 'Noto Sans SC', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+    }
+
+    h1 {
+      font-size: 3.8rem;
+      font-weight: 900;
+      background: linear-gradient(135deg, #FECA57, #FF9F43, #FF6B6B);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      margin-bottom: 50px;
+      letter-spacing: 4px;
+    }
+
+    .wheel-wrapper {
+      position: relative;
+      width: 520px;
+      height: 520px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #wheel {
+      border-radius: 50%;
+      box-shadow:
+        0 0 0 6px rgba(254, 202, 87, 0.5),
+        0 0 50px rgba(254, 202, 87, 0.25),
+        0 0 100px rgba(255, 107, 107, 0.15);
+    }
+
+    #spinBtn {
+      margin-top: 48px;
+      padding: 18px 72px;
+      font-size: 2rem;
+      font-weight: 900;
+      font-family: inherit;
+      background: linear-gradient(135deg, #FECA57, #FF9F43);
+      color: #1a0a2e;
+      border: none;
+      border-radius: 60px;
+      cursor: pointer;
+      transition: transform 0.15s, box-shadow 0.2s;
+      box-shadow: 0 8px 32px rgba(254, 202, 87, 0.45);
+      letter-spacing: 6px;
+    }
+
+    #spinBtn:hover:not(:disabled) {
+      transform: translateY(-4px);
+      box-shadow: 0 14px 42px rgba(254, 202, 87, 0.65);
+    }
+
+    #spinBtn:active:not(:disabled) {
+      transform: translateY(0);
+      box-shadow: 0 4px 16px rgba(254, 202, 87, 0.35);
+    }
+
+    #spinBtn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    #overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(10, 4, 28, 0.78);
+      backdrop-filter: blur(8px);
+      z-index: 200;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #overlay.show {
+      display: flex;
+      animation: fadeIn 0.25s ease;
+    }
+
+    .modal {
+      background: linear-gradient(145deg, #231850, #0f3d38);
+      border: 2px solid rgba(254, 202, 87, 0.45);
+      border-radius: 28px;
+      padding: 56px 72px;
+      text-align: center;
+      box-shadow: 0 24px 64px rgba(0, 0, 0, 0.6), 0 0 40px rgba(254, 202, 87, 0.15);
+      animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      max-width: 90vw;
+    }
+
+    .modal-img {
+      width: 180px;
+      height: 180px;
+      object-fit: contain;
+      display: block;
+      margin: 0 auto 20px;
+    }
+
+    .modal p {
+      font-size: 2.4rem;
+      font-weight: 700;
+      color: #FECA57;
+      margin-bottom: 36px;
+      line-height: 1.5;
+    }
+
+    .modal button {
+      padding: 13px 44px;
+      font-size: 1.15rem;
+      font-family: inherit;
+      font-weight: 700;
+      background: transparent;
+      color: #FECA57;
+      border: 2px solid rgba(254, 202, 87, 0.7);
+      border-radius: 40px;
+      cursor: pointer;
+      transition: background 0.2s, border-color 0.2s;
+      letter-spacing: 2px;
+    }
+
+    .modal button:hover {
+      background: rgba(254, 202, 87, 0.18);
+      border-color: #FECA57;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; }
+      to   { opacity: 1; }
+    }
+
+    @keyframes popIn {
+      from { transform: scale(0.55); opacity: 0; }
+      to   { transform: scale(1);    opacity: 1; }
+    }
+  </style>
+</head>
+<body>
+
+  <h1>今晚吃什么？</h1>
+
+  <div class="wheel-wrapper">
+    <canvas id="wheel" width="500" height="500"></canvas>
+  </div>
+
+  <button id="spinBtn">转！</button>
+
+  <div id="overlay">
+    <div class="modal">
+      <img id="resultImg" class="modal-img" src="" alt="">
+      <p id="resultText"></p>
+      <button id="closeBtn">好耶！</button>
+    </div>
+  </div>
+
+  <script>
+    const options = [
+      '饺子','披萨','红头发女孩','马师傅','Dookbaeki',
+      'Kinjo','云之南','852','粤之味','碗碗香',
+      '方便面','意面','干锅虾','油焖虾','越南粉'
+    ];
+
+    const colors = [
+      '#FF6B6B','#FF9F43','#FECA57','#48DBFB','#1DD1A1',
+      '#FF9FF3','#54A0FF','#a29bfe','#fd79a8','#EE5A24',
+      '#00cec9','#6c5ce7','#55efc4','#fdcb6e','#6ab04c'
+    ];
+
+    const images = {
+      '饺子':     'images/dumpling.png',  // 🥟 Chinese dumplings
+      '披萨':     'images/pizza.png',     // 🍕
+      '红头发女孩':'images/burger.png',   // 🍔 Wendy's
+      '马师傅':   'images/stew.png',      // 🍲 Korean stew
+      'Dookbaeki':'images/bbq.png',       // 🥩 Korean BBQ
+      'Kinjo':    'images/sushi.png',     // 🍣 Japanese sushi
+      '云之南':   'images/noodles.png',   // 🍜 Yunnan noodles
+      '852':      'images/boba.png',      // 🧋 HK milk tea cafe
+      '粤之味':   'images/dimsum.png',    // 🍱 Cantonese dim sum
+      '碗碗香':   'images/chili.png',     // 🌶️ Szechuan spicy
+      '方便面':   'images/noodles.png',   // 🍜 instant noodles
+      '意面':     'images/pasta.png',     // 🍝 pasta
+      '干锅虾':   'images/shrimp.png',    // 🦐 dry pot shrimp
+      '油焖虾':   'images/shrimp.png',    // 🦐 braised shrimp
+      '越南粉':   'images/pho.png',       // 🥣 Vietnamese pho
+    };
+
+    const canvas  = document.getElementById('wheel');
+    const ctx     = canvas.getContext('2d');
+    const spinBtn = document.getElementById('spinBtn');
+    const overlay = document.getElementById('overlay');
+    const resultText = document.getElementById('resultText');
+    const resultImg  = document.getElementById('resultImg');
+    const closeBtn   = document.getElementById('closeBtn');
+
+    const cx = canvas.width  / 2;   // 250
+    const cy = canvas.height / 2;   // 250
+    const outerRadius = cx - 6;     // 244
+    const N = options.length;
+    const segAngle = (2 * Math.PI) / N;   // 24°
+
+    let currentAngle = 0;
+    let spinning = false;
+
+    function drawWheel(angle) {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      ctx.save();
+      ctx.translate(cx, cy);
+      // offset so segment 0 is centered at top (12 o'clock) when angle = 0
+      ctx.rotate(angle - Math.PI / 2 - segAngle / 2);
+
+      for (let i = 0; i < N; i++) {
+        const startA = i * segAngle;
+        const endA   = startA + segAngle;
+        const midA   = startA + segAngle / 2;
+
+        // Segment
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.arc(0, 0, outerRadius, startA, endA);
+        ctx.closePath();
+        ctx.fillStyle = colors[i];
+        ctx.fill();
+        ctx.strokeStyle = 'rgba(255,255,255,0.2)';
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Label
+        ctx.save();
+        ctx.rotate(midA);
+        ctx.textAlign    = 'right';
+        ctx.textBaseline = 'middle';
+        ctx.fillStyle    = '#fff';
+        ctx.shadowColor  = 'rgba(0,0,0,0.65)';
+        ctx.shadowBlur   = 4;
+        const text = options[i];
+        const fs = text.length > 5 ? 11 : text.length > 3 ? 13 : 15;
+        ctx.font = `bold ${fs}px 'Noto Sans SC', 'PingFang SC', sans-serif`;
+        ctx.fillText(text, outerRadius - 14, 0);
+        ctx.restore();
+      }
+
+      ctx.restore();
+
+      // Outer decorative ring
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.beginPath();
+      ctx.arc(0, 0, outerRadius, 0, 2 * Math.PI);
+      ctx.strokeStyle = 'rgba(255,255,255,0.12)';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.restore();
+
+      // Center hub
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.beginPath();
+      ctx.arc(0, 0, 22, 0, 2 * Math.PI);
+      const hubGrad = ctx.createRadialGradient(-5, -5, 0, 0, 0, 22);
+      hubGrad.addColorStop(0, '#fff9c4');
+      hubGrad.addColorStop(1, '#FF9F43');
+      ctx.fillStyle = hubGrad;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(255,255,255,0.8)';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+      ctx.restore();
+
+      // Pointer arrow (fixed at top, not rotating)
+      const px = cx;
+      const py = 0;
+      ctx.save();
+      ctx.beginPath();
+      ctx.moveTo(px - 14, py);
+      ctx.lineTo(px + 14, py);
+      ctx.lineTo(px, py + 34);
+      ctx.closePath();
+      ctx.fillStyle = '#FECA57';
+      ctx.shadowColor = 'rgba(254, 202, 87, 0.9)';
+      ctx.shadowBlur = 14;
+      ctx.fill();
+      ctx.strokeStyle = '#fff';
+      ctx.lineWidth = 1.5;
+      ctx.shadowBlur = 0;
+      ctx.stroke();
+      ctx.restore();
+    }
+
+    function getWinner(angle) {
+      // Normalize the wheel-frame angle of the top pointer to [0, 2π)
+      let a = ((-angle + segAngle / 2) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+      return Math.floor(a / segAngle) % N;
+    }
+
+    function easeOutCubic(t) {
+      return 1 - Math.pow(1 - t, 3);
+    }
+
+    function spin() {
+      if (spinning) return;
+      spinning = true;
+      spinBtn.disabled = true;
+
+      // At least 5 full rotations + a random fraction to determine winner
+      const totalRotation = (5 + Math.random()) * 2 * Math.PI;
+      const startAngle  = currentAngle;
+      const targetAngle = currentAngle + totalRotation;
+      const duration    = 3000;
+      const startTime   = performance.now();
+
+      function animate(now) {
+        const elapsed = now - startTime;
+        const t = Math.min(elapsed / duration, 1);
+        currentAngle = startAngle + (targetAngle - startAngle) * easeOutCubic(t);
+        drawWheel(currentAngle);
+
+        if (t < 1) {
+          requestAnimationFrame(animate);
+        } else {
+          currentAngle = targetAngle;
+          drawWheel(currentAngle);
+          spinning = false;
+
+          const idx = getWinner(currentAngle);
+          const winner = options[idx];
+          resultText.textContent = `今晚就吃${winner}吧！`;
+          resultImg.src = images[winner] || '';
+          resultImg.alt = winner;
+          overlay.classList.add('show');
+        }
+      }
+
+      requestAnimationFrame(animate);
+    }
+
+    function closeModal() {
+      overlay.classList.remove('show');
+      spinBtn.disabled = false;
+    }
+
+    spinBtn.addEventListener('click', spin);
+    closeBtn.addEventListener('click', closeModal);
+    overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+
+    // Initial draw; redraw after fonts load for correct Chinese rendering
+    drawWheel(currentAngle);
+    document.fonts.ready.then(() => drawWheel(currentAngle));
+  </script>
+</body>
+</html>
